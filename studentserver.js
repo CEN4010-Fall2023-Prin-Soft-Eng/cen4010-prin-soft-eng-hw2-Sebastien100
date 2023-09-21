@@ -333,3 +333,56 @@ app.listen(5678); //start the server
 console.log('Server is running...');
 console.log('Webapp:   http://localhost:5678/')
 console.log('API Docs: http://localhost:5678/api-docs')
+
+/**
+ * @swagger
+ * /students/search/{last_name}:
+ *   get:
+ *     summary: Search for students by last name.
+ *     description: Use this endpoint to search for students by their last name.
+ *     parameters:
+ *       - name: last_name
+ *         description: Student's last name to search for.
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Success. An array of students matching the last name.
+ *       404:
+ *         description: No students found with the provided last name.
+ */
+app.get('/students/search/:last_name', function (req, res) {
+  var searchLastName = req.params.last_name;
+
+  glob("students/*.json", null, function (err, files) {
+    if (err) {
+      return res.status(500).send({ "message": "error - internal server error" });
+    }
+
+    var matchingStudents = [];
+
+    files.forEach(function (file) {
+      fs.readFile(file, "utf8", function (err, data) {
+        if (err) {
+          return res.status(500).send({ "message": "error - internal server error" });
+        }
+
+        var student = JSON.parse(data);
+
+        if (student.last_name === searchLastName) {
+          matchingStudents.push(student);
+        }
+
+        if (files.indexOf(file) === files.length - 1) {
+          if (matchingStudents.length === 0) {
+            return res.status(404).send({ "message": "No students found with the provided last name" });
+          } else {
+            return res.status(200).json(matchingStudents);
+          }
+        }
+      });
+    });
+  });
+});
